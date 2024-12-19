@@ -1,0 +1,10 @@
+#input file list
+input_files:
+  phylogenetic_tree: data/trees/global_tree_brlen_pruned_renamed.tre
+
+
+#output file list
+output_files:
+  nps_in_genera: data/nps_in_genera.csv
+  nps_in_genera_count: data/nps_in_genera_count.csv
+  nps_in_family_count: data/nps_in_family_count.csv
