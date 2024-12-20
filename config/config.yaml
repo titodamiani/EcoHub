@@ -8,6 +8,8 @@ tree_files:
 sparql_queries:
   nps_in_genera: scripts/sparql_queries/np_in_genera.txt
 
+input_files:
+  troja_plant_list: data/troja_plant_list.csv
 
 output_files:
   nps_in_genera: data/nps_in_genera.csv

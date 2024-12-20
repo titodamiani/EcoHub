@@ -1,9 +1,6 @@
-
 import yaml
 from pathlib import Path
-import requests
 import pandas as pd
-import time
 import logging
 
 
@@ -56,40 +53,3 @@ def get_existing_csv(file_path):
         return pd.read_csv(file_path)
     else:
         return pd.DataFrame()  # Return empty DataFrame if no file exists
-
-
-########## Run SPARQL query ##########
-def run_query(query, genus, max_attempts=5):
-    url = "https://query.wikidata.org/sparql"
-    headers = {"Accept": "application/sparql-results+json",
-               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-
-    for attempt in range(1, max_attempts + 1):
-        try:
-            #run query
-            response = requests.get(url, headers=headers, params={"query": query})
-            response.raise_for_status()
-
-            #process output
-            query_out = response.json()
-            out_df = pd.json_normalize(query_out["results"]["bindings"])
-            out_df = out_df[[col for col in out_df.columns if col.endswith(".value")]]
-            out_df.columns = [col.replace(".value", "") for col in out_df.columns]
-            logging.info(f"Query for '{genus}' genus completed in {attempt} attempts.")
-            return out_df
-        
-        #handle exceptions
-        except requests.exceptions.HTTPError as http_err:
-            if response.status_code == 429: #retry for too many requests
-                wait_time = 2 ** attempt
-                logging.warning(f"Request limit reached for '{genus}'. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-                continue
-            else:
-                logging.error(f"HTTP Error for '{genus}' on attempt {attempt}: {http_err}")
-                break
-        except Exception as e:
-            logging.error(f"Unexpected error for '{genus}' on attempt {attempt}: {e}")
-            break
-    logging.error(f"Query for '{genus}' failed after {max_attempts} attempts.")
-    return None
