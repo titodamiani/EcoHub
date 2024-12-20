@@ -48,60 +48,21 @@ def read_config(config_path: str, filepaths: bool=True, **kwargs):
         raise KeyError(str(e))
     
 
-########## Parse phylogenetic tree ##########
-def parse_tree(tree):
-    
-    #extract leaf names from tree
-    tree_leaves = [leaf.name for leaf in tree.get_terminals()]
-    tree_leaves = pd.Series(tree_leaves, name='leaf_name')
-    
-    #split leaf names into separate columns
-    tree_df = tree_leaves.str.split('_', expand=True)
-    tree_df = tree_df.iloc[:, :4]  # Keep first 4 columns
-    tree_df.columns = ['Order', 'Family', 'Genus', 'Species']  # Rename columns
-    
-    # Combine leaf names with the new columns and set index
-    tree_df = pd.concat([tree_leaves, tree_df], axis=1).rename(columns={0: 'leaf_name'}).set_index('leaf_name')
-     
-    return tree_df
-
-
-########## Create SPARQL query for given genus ##########
-def generate_query(genus):
-    return f"""
-    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-    PREFIX p: <http://www.wikidata.org/prop/>
-    PREFIX ps: <http://www.wikidata.org/prop/statement/>
-    PREFIX pr: <http://www.wikidata.org/prop/reference/>
-    PREFIX prov: <http://www.w3.org/ns/prov#>
-
-    SELECT DISTINCT ?genus ?genus_name ?taxon ?taxon_name ?structure_inchikey ?structure_smiles 
-    (GROUP_CONCAT(DISTINCT ?reference; separator=", ") AS ?references) 
-    (GROUP_CONCAT(DISTINCT ?reference_doi; separator=", ") AS ?reference_dois) WHERE {{
-        ?genus wdt:P225 "{genus}".
-        ?genus wdt:P225 ?genus_name.                 
-        ?taxon wdt:P171* ?genus.                     
-        ?structure wdt:P235 ?structure_inchikey;      
-                   wdt:P233 ?structure_smiles;        
-                   p:P703 [                           
-                       ps:P703 ?taxon;                
-                       prov:wasDerivedFrom/pr:P248 ?reference  
-                   ].
-        ?taxon wdt:P225 ?taxon_name.                  
-        OPTIONAL {{ ?reference wdt:P356 ?reference_doi. }}
-    }}
-    GROUP BY ?genus ?genus_name ?taxon ?taxon_name ?structure_inchikey ?structure_smiles
-    """
+########## Load existing CSVs ##########
+def get_existing_csv(file_path):
+    """Load existing results from CSV if file exists."""
+    if file_path.exists():
+        logging.info(f"Output file already found at {file_path}. Importing existing output file...")
+        return pd.read_csv(file_path)
+    else:
+        return pd.DataFrame()  # Return empty DataFrame if no file exists
 
 
 ########## Run SPARQL query ##########
-def run_query(genus, max_attempts=5):
-    query = generate_query(genus)
+def run_query(query, genus, max_attempts=5):
     url = "https://query.wikidata.org/sparql"
-    headers = {
-        "Accept": "application/sparql-results+json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    }
+    headers = {"Accept": "application/sparql-results+json",
+               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 
     for attempt in range(1, max_attempts + 1):
         try:
@@ -117,6 +78,7 @@ def run_query(genus, max_attempts=5):
             logging.info(f"Query for '{genus}' genus completed in {attempt} attempts.")
             return out_df
         
+        #handle exceptions
         except requests.exceptions.HTTPError as http_err:
             if response.status_code == 429: #retry for too many requests
                 wait_time = 2 ** attempt

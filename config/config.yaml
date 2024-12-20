@@ -1,9 +1,14 @@
-#input file list
-input_files:
-  phylogenetic_tree: data/trees/global_tree_brlen_pruned_renamed.tre
 
 
-#output file list
+tree_files:
+  zuntini_genus: data/trees/global_tree_brlen_pruned_renamed.tre
+  zuntini_family: data/trees/3_calibrated_family_level_young_tree.tre
+  zuntini_order: data/trees/3_calibrated_order_level_young_tree.tre
+
+sparql_queries:
+  nps_in_genera: scripts/sparql_queries/np_in_genera.txt
+
+
 output_files:
   nps_in_genera: data/nps_in_genera.csv
   nps_in_genera_count: data/nps_in_genera_count.csv

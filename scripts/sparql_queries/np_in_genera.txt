@@ -1,0 +1,22 @@
+    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+    PREFIX p: <http://www.wikidata.org/prop/>
+    PREFIX ps: <http://www.wikidata.org/prop/statement/>
+    PREFIX pr: <http://www.wikidata.org/prop/reference/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+
+    SELECT DISTINCT ?genus ?genus_name ?taxon ?taxon_name ?structure_inchikey ?structure_smiles 
+    (GROUP_CONCAT(DISTINCT ?reference; separator=", ") AS ?references) 
+    (GROUP_CONCAT(DISTINCT ?reference_doi; separator=", ") AS ?reference_dois) WHERE {{
+        ?genus wdt:P225 "{genus}". #enter genus name here
+        ?genus wdt:P225 ?genus_name.                 
+        ?taxon wdt:P171* ?genus.                     
+        ?structure wdt:P235 ?structure_inchikey;      
+                   wdt:P233 ?structure_smiles;        
+                   p:P703 [                           
+                       ps:P703 ?taxon;                
+                       prov:wasDerivedFrom/pr:P248 ?reference  
+                   ].
+        ?taxon wdt:P225 ?taxon_name.                  
+        OPTIONAL {{ ?reference wdt:P356 ?reference_doi. }}
+    }}
+    GROUP BY ?genus ?genus_name ?taxon ?taxon_name ?structure_inchikey ?structure_smiles
